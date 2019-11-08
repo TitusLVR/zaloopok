@@ -15,11 +15,12 @@ import bpy
 from bpy.props import FloatProperty, EnumProperty
 import bmesh, math, mathutils as mu
 
-### UV tools
 
+# UV tools
 def get_any(someset):
     for i in someset:
         return i
+
 
 def reset_uvs(context, coords):
     bm = bmesh.from_edit_mesh(context.active_object.data)
@@ -27,6 +28,7 @@ def reset_uvs(context, coords):
     for l in coords:
         l[uv].uv = coords[l]
     context.active_object.data.update()
+    
 
 def initial_uvs(frags, bm):
     uv = bm.loops.layers.uv.verify()
@@ -95,7 +97,7 @@ def extract_frag(ls, lookup, n_lookup):
                         todo.add(pd)
                         ls.discard(pd)
     return done
-            
+
 def partial_frags(bm, uv):
     if bpy.context.scene.tool_settings.use_uv_select_sync:
         hes = uv_gather_sync(bm)
@@ -434,7 +436,7 @@ def unselected_loop_extensions(edge):
     return [e for e in [ext1, ext2] if e and not e.select]
 
 def unselected_ring_extensions(edge):
-    return [e for e in 
+    return [e for e in
         [ring_extension(edge, f) for f in edge.link_faces]
         if e and not e.select]
 
@@ -1070,7 +1072,7 @@ class ScaleUVFragments(bpy.types.Operator):
         min=-100000.0,
         max=100000.0,
         default=0.0)
-    axis = EnumProperty(
+    axis : EnumProperty(
         name = "Axis",
         description="Axis to rotate about",
         items = [
@@ -1170,7 +1172,7 @@ class ZaloopokView3DPanel(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_idname = "VIEW3D_PT_Zaloopok"
     bl_category = 'Zaloopok'
-    bl_label = "Zaloopok"   
+    bl_label = "Zaloopok"
 
     @classmethod
     def poll(cls, context):
@@ -1258,13 +1260,13 @@ classes = (
             EqualizeUVChains,
             LineUpUVChains
         )
-    
+
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)    
-    
+        bpy.utils.register_class(cls)
 
-def unregister():    
+
+def unregister():
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
