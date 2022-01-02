@@ -1,8 +1,8 @@
 bl_info = {
     "name": "Zaloopok",
-    "author": "nemyax/Titus Lavrov",
-    "version": (0, 6, 20190401),
-    "blender": (2, 80, 0),
+    "author": "nemyax, Titus Lavrov, Zuorion",
+    "version": (7, 2021,1,2),
+    "blender": (2, 93, 0),
     "location": "",
     "description": "Adaptations of a few tools from Wings3D",
     "warning": "",
@@ -12,8 +12,9 @@ bl_info = {
     }
 
 import bpy
-from bpy.props import FloatProperty, EnumProperty
+from bpy.props import IntProperty, FloatProperty, BoolProperty, EnumProperty, StringProperty
 import bmesh, math, mathutils as mu
+from bpy.types import AddonPreferences
 
 
 # UV tools
@@ -508,27 +509,29 @@ def complete_associated_rings(edges):
     return rings
 
 def grow_loop(context):
-    mesh = context.active_object.data
-    bm = bmesh.from_edit_mesh(mesh)
-    selected_edges = [e for e in bm.edges if e.select]
-    loop_exts = []
-    for se in selected_edges:
-        loop_exts.extend(unselected_loop_extensions(se))
-    for le in loop_exts:
-        le.select = True
-    mesh.update()
+    for obj in bpy.context.selected_objects:
+        mesh = obj.data
+        bm = bmesh.from_edit_mesh(mesh)
+        selected_edges = [e for e in bm.edges if e.select]
+        loop_exts = []
+        for se in selected_edges:
+            loop_exts.extend(unselected_loop_extensions(se))
+        for le in loop_exts:
+            le.select = True
+        mesh.update()
     return {'FINISHED'}
 
 def grow_ring(context):
-    mesh = context.active_object.data
-    bm = bmesh.from_edit_mesh(mesh)
-    selected_edges = [e for e in bm.edges if e.select]
-    ring_exts = []
-    for se in selected_edges:
-        ring_exts.extend(unselected_ring_extensions(se))
-    for re in ring_exts:
-        re.select = True
-    mesh.update()
+    for obj in bpy.context.selected_objects:
+        mesh = obj.data
+        bm = bmesh.from_edit_mesh(mesh)
+        selected_edges = [e for e in bm.edges if e.select]
+        ring_exts = []
+        for se in selected_edges:
+            ring_exts.extend(unselected_ring_extensions(se))
+        for re in ring_exts:
+            re.select = True
+        mesh.update()
     return {'FINISHED'}
 
 def group_selected(edges):
@@ -550,35 +553,39 @@ def group_unselected(edges):
     return [g for g in gaps if g != []]
 
 def shrink_loop(context):
-    mesh = context.active_object.data
-    bm = bmesh.from_edit_mesh(mesh)
-    selected_edges = [e for e in bm.edges if e.select]
-    loop_ends = []
-    for se in selected_edges:
-        for v in [se.verts[0], se.verts[1]]:
-            le = loop_extension(se, v)
-            if not le or not le.select:
-                loop_ends.append(se)
-    loop_ends_unique = list(set(loop_ends))
-    if len(loop_ends_unique):
-        for e in loop_ends_unique:
-            e.select = False
-    mesh.update()
+    for obj in bpy.context.selected_objects:
+        mesh = obj.data
+        bm = bmesh.from_edit_mesh(mesh)
+        selected_edges = [e for e in bm.edges if e.select]
+        loop_ends = []
+        for se in selected_edges:
+            for v in [se.verts[0], se.verts[1]]:
+                le = loop_extension(se, v)
+                if not le or not le.select:
+                    loop_ends.append(se)
+        loop_ends_unique = list(set(loop_ends))
+        if len(loop_ends_unique):
+            for e in loop_ends_unique:
+                e.select = False
+        bm.select_history.validate()
+        mesh.update()
     return {'FINISHED'}
 
 def shrink_ring(context):
-    mesh = context.active_object.data
-    bm = bmesh.from_edit_mesh(mesh)
-    selected_edges = [e for e in bm.edges if e.select]
-    ring_ends = []
-    for r in complete_associated_rings(selected_edges):
-        chains = group_selected(r)
-        for c in chains:
-            ring_ends.append(c[0])
-            ring_ends.append(c[-1])
-    for e in list((set(ring_ends))):
-        e.select = False
-    mesh.update()
+    for obj in bpy.context.selected_objects:
+        mesh = obj.data
+        bm = bmesh.from_edit_mesh(mesh)
+        selected_edges = [e for e in bm.edges if e.select]
+        ring_ends = []
+        for r in complete_associated_rings(selected_edges):           
+            chains = group_selected(r)
+            for c in chains:
+                ring_ends.append(c[0])
+                ring_ends.append(c[-1])
+        for e in list((set(ring_ends))):
+            e.select = False
+        bm.select_history.validate()
+        mesh.update()
     return {'FINISHED'}
 
 def select_bounded_loop(context):
@@ -1171,7 +1178,7 @@ class ZaloopokView3DPanel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_idname = "VIEW3D_PT_Zaloopok"
-    bl_category = 'Zaloopok'
+    bl_category = 'Edit'
     bl_label = "Zaloopok"
 
     @classmethod
@@ -1219,7 +1226,7 @@ class ZaloopokUVPanel(bpy.types.Panel):
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
     bl_idname = "IMGEDIT_PT_Zaloopok"
-    bl_category = 'Zaloopok'
+    bl_category = 'Edit'
     bl_label = "Zaloopok"
 
     @classmethod
@@ -1237,6 +1244,115 @@ class ZaloopokUVPanel(bpy.types.Panel):
         subcol2.operator("uv.equalize", text="Equalize")
         subcol2.operator("uv.line_up", text="Line Up")
 
+
+def addmenu_meshselectloops_callback(self, context):
+    #VIEW3D_MT_edit_mesh_select_loops
+    self.layout.separator()
+    self.layout.operator("mesh.z_grow_loop")
+    self.layout.operator("mesh.z_shrink_loop")
+    self.layout.separator()
+    self.layout.operator("mesh.z_grow_ring")
+    self.layout.operator("mesh.z_shrink_ring")
+
+def update_3Dpanel(self, context):
+    message = "Zaloopok: Updating Panel locations has failed"
+    try:
+        for panel in panels3D:
+            if "bl_rna" in panel.__dict__:
+                bpy.utils.unregister_class(panel)
+
+        for panel in panels3D:
+            panel.bl_category = context.preferences.addons[__name__].preferences.category3D
+            bpy.utils.register_class(panel)
+
+    except Exception as e:
+        print("\n[{}]\n{}\n\nError:\n{}".format(__name__, message, e))
+        pass
+
+def update_UVpanel(self, context):
+    message = "Zaloopok: Updating Panel locations has failed"
+    try:
+        for panel in panelsUV:
+            if "bl_rna" in panel.__dict__:
+                bpy.utils.unregister_class(panel)
+
+        for panel in panelsUV:
+            panel.bl_category = context.preferences.addons[__name__].preferences.categoryUV
+            bpy.utils.register_class(panel)
+
+    except Exception as e:
+        print("\n[{}]\n{}\n\nError:\n{}".format(__name__, message, e))
+        pass
+
+
+
+class AddonPreferences(AddonPreferences):
+    bl_idname = __name__
+    
+    
+    def update_enabledpanel(self, context):
+        if self.enabledtabs:        
+            for panel in panels3D:
+                bpy.utils.register_class(panel)
+        
+            for panel in panelsUV:
+                bpy.utils.register_class(panel)
+        else:
+            for panel in panels3D:
+                bpy.utils.unregister_class(panel)
+        
+            for panel in panelsUV:
+                bpy.utils.unregister_class(panel)
+        return
+
+    
+    enabledtabs: BoolProperty(
+        name="Enable Panels",
+        description="Add panels with additional operators or not",
+        default=True,
+        update=update_enabledpanel
+        )
+    
+    category3D: StringProperty(
+        name="3D Tab Category",
+        description="Choose a name for the category of the panel",
+        default="Edit",
+        update=update_3Dpanel
+        )
+        
+    categoryUV: StringProperty(
+        name="UV Tab Category",
+        description="Choose a name for the category of the panel",
+        default="Edit",
+        update=update_UVpanel
+        )
+    
+    
+    def draw(self, context):
+        layout = self.layout
+        wm = bpy.context.window_manager
+        
+        row = layout.row()
+        col = row.column()
+        col.label(text="Tabs:")
+        col.prop(self, "enabledtabs")
+        if self.enabledtabs:
+            col.prop(self, "category3D")
+            col.prop(self, "categoryUV")
+        
+
+
+addon_keymaps = []
+
+panels3D = (
+        ZaloopokView3DPanel,
+        )
+
+panelsUV = (
+        ZaloopokUVPanel,
+        )      
+
+        
 classes = (
             ZaloopokView3DPanel,
             ZaloopokUVPanel,
@@ -1258,18 +1374,30 @@ classes = (
             RotateUVFragments,
             ScaleUVFragments,
             EqualizeUVChains,
-            LineUpUVChains
+            LineUpUVChains,
+            AddonPreferences
         )
+
+
+
+
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+        
+    bpy.types.VIEW3D_MT_edit_mesh_select_loops.append(addmenu_meshselectloops_callback)
+    update_3Dpanel(None, bpy.context)
+    update_UVpanel(None, bpy.context)
 
 
 def unregister():
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+        
+    bpy.types.VIEW3D_MT_edit_mesh_select_loops.append(addmenu_meshselectloops_callback)
+
 
 
 if __name__ == "__main__":
