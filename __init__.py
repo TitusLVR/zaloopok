@@ -509,7 +509,7 @@ def complete_associated_rings(edges):
     return rings
 
 def grow_loop(context):
-    for obj in bpy.context.selected_objects:
+    for obj in bpy.context.objects_in_mode:
         mesh = obj.data
         bm = bmesh.from_edit_mesh(mesh)
         selected_edges = [e for e in bm.edges if e.select]
@@ -522,7 +522,7 @@ def grow_loop(context):
     return {'FINISHED'}
 
 def grow_ring(context):
-    for obj in bpy.context.selected_objects:
+    for obj in bpy.context.objects_in_mode:
         mesh = obj.data
         bm = bmesh.from_edit_mesh(mesh)
         selected_edges = [e for e in bm.edges if e.select]
@@ -553,7 +553,7 @@ def group_unselected(edges):
     return [g for g in gaps if g != []]
 
 def shrink_loop(context):
-    for obj in bpy.context.selected_objects:
+    for obj in bpy.context.objects_in_mode:
         mesh = obj.data
         bm = bmesh.from_edit_mesh(mesh)
         selected_edges = [e for e in bm.edges if e.select]
@@ -572,7 +572,7 @@ def shrink_loop(context):
     return {'FINISHED'}
 
 def shrink_ring(context):
-    for obj in bpy.context.selected_objects:
+    for obj in bpy.context.objects_in_mode:
         mesh = obj.data
         bm = bmesh.from_edit_mesh(mesh)
         selected_edges = [e for e in bm.edges if e.select]
